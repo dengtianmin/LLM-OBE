@@ -32,8 +32,10 @@ LLM-OBE/
 │   │   ├── rms_norm.cu        # RMS归一化CUDA内核
 │   │   ├── add.py             # 逐元素加法测试
 │   │   ├── add.cu             # 逐元素运算CUDA内核
-│   │   └── elementwise.cu     # 通用逐元素运算内核
+│   │   └── add.cuh            # 逐元素运算头文件
 │   └── cpu/                    # CPU参考实现
+│       ├── add.cpp            # 逐元素加法CPU实现
+│       ├── gemm.cpp           # 矩阵乘法CPU实现
 │       └── rmsnorm.cpp        # RMS归一化CPU实现
 └── doc/                        # 文档和性能图表
     ├── *.png                  # 性能对比图表
