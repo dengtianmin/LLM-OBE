@@ -1,18 +1,77 @@
-void rmsnorm_kernel_cpu(const tensor::Tensor& input, const tensor::Tensor& weight,
-    const tensor::Tensor& output, void* stream) {
+#include <armadillo>
+#include <torch/extension.h>
+#include <torch/types.h>
+#include <cmath>
 
-const float* in_ptr = input.ptr<float>();
-const float* wei_ptr = weight.ptr<float>();
-const float* out_ptr = output.ptr<float>();
-const int32_t dim = static_cast<int32_t>(input.size());
+// RMS Norm using Armadillo: y = x / rms(x) * g
+torch::Tensor rmsnorm_cpu_f32(torch::Tensor x, float g) {
+    TORCH_CHECK(x.dtype() == torch::kFloat32, "Input tensor must be float32");
+    TORCH_CHECK(x.dim() == 2, "Input tensor must be 2D (N x K)");
+    
+    auto shape = x.sizes();
+    int N = shape[0];  // batch size
+    int K = shape[1];  // feature dimension
+    
+    const float epsilon = 1e-5f;
+    
+    // Convert to Armadillo matrix
+    arma::fmat mat_x(static_cast<float*>(x.data_ptr()), N, K, false, true);
+    
+    // Create output tensor
+    auto output = torch::zeros_like(x);
+    arma::fmat mat_y(static_cast<float*>(output.data_ptr()), N, K, false, true);
+    
+    // Process each row (sample)
+    for (int i = 0; i < N; i++) {
+        arma::frowvec row = mat_x.row(i);
+        
+        // Compute RMS: sqrt(mean(x^2))
+        float mean_square = arma::mean(arma::square(row));
+        float rms = std::sqrt(mean_square + epsilon);
+        
+        // Normalize and scale
+        mat_y.row(i) = (row / rms) * g;
+    }
+    
+    return output;
+}
 
-arma::fvec in_tensor(const_cast<float*>(in_ptr), dim, false, true);
-arma::fvec out_tensor(const_cast<float*>(out_ptr), dim, false, true);
-arma::fvec wei_tensor(const_cast<float*>(wei_ptr), dim, false, true);
+// Naive RMS norm implementation for comparison
+torch::Tensor rmsnorm_naive_cpu_f32(torch::Tensor x, float g) {
+    TORCH_CHECK(x.dtype() == torch::kFloat32, "Input tensor must be float32");
+    TORCH_CHECK(x.dim() == 2, "Input tensor must be 2D (N x K)");
+    
+    auto shape = x.sizes();
+    int N = shape[0];
+    int K = shape[1];
+    
+    const float epsilon = 1e-5f;
+    
+    arma::fmat mat_x(static_cast<float*>(x.data_ptr()), N, K, false, true);
+    auto output = torch::zeros_like(x);
+    arma::fmat mat_y(static_cast<float*>(output.data_ptr()), N, K, false, true);
+    
+    for (int i = 0; i < N; i++) {
+        arma::frowvec row = mat_x.row(i);
+        
+        // Calculate variance manually
+        float sum_squares = 0.0f;
+        for (int j = 0; j < K; j++) {
+            sum_squares += row(j) * row(j);
+        }
+        float mean_square = sum_squares / K;
+        float inv_rms = 1.0f / std::sqrt(mean_square + epsilon);
+        
+        // Apply normalization
+        for (int j = 0; j < K; j++) {
+            mat_y(i, j) = row(j) * inv_rms * g;
+        }
+    }
+    
+    return output;
+}
 
-const float eps = 1e-5f;
-
-const float mean = arma::as_scalar(arma::mean(arma::pow(in_tensor, 2))) + eps;
-const float rsqrt = 1.f / std::sqrt(mean);
-out_tensor = wei_tensor % (rsqrt * in_tensor);
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+    m.def("rmsnorm_cpu_f32", &rmsnorm_cpu_f32, "CPU float32 RMS normalization using Armadillo");
+    m.def("rmsnorm_naive_cpu_f32", &rmsnorm_naive_cpu_f32, "CPU float32 naive RMS normalization using Armadillo");
 }
