@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-LLM-OBE (operation benchmark evaluate)是一个专注于大语言模型核心算子优化的工程项目，通过CUDA并行计算实现高性能算子。这个项目的主要目的是学习gpu模型以及大语言模型相关的知识，记录cuda算子的学习过程，在doc文件夹中给出了算子的性能测试。
+LLM-OBE (operation benchmark evaluate)是一个专注于大语言模型核心算子优化的工程项目，通过CUDA并行计算实现高性能算子。这个项目的主要目的是学习gpu模型以及大语言模型相关的知识，记录cuda算子的学习过程，通过pybind联通python和C++，使用torch编译，在doc文件夹中给出了算子的性能测试。
 
 本项目参考了以下优秀的开源项目：
 - **[LeetCUDA](https://github.com/xlite-dev/LeetCUDA/)**：CUDA算子实现和优化技术
@@ -10,14 +10,6 @@ LLM-OBE (operation benchmark evaluate)是一个专注于大语言模型核心算
 - **[vLLM](https://github.com/vllm-project/vllm)**：高性能LLM推理引擎
 - **[Triton Flash Attention](https://github.com/hkproj/triton-flash-attention)**：注意力机制优化实现
 
-## 🚀 主要特性
-
-- **高性能CUDA算子**：针对GPU架构优化的自定义CUDA内核
-- **多精度支持**：支持FP32、FP16等不同精度计算
-- **向量化优化**：利用CUDA的向量化指令提升内存带宽利用率
-- **内存优化**：共享内存、寄存器优化、双缓冲等高级优化技术
-- **性能基准**：完整的性能测试框架和对比分析
-- **PyTorch集成**：无缝集成PyTorch生态系统
 
 ## 📁 项目结构
 
